@@ -1,6 +1,7 @@
 # encoding:utf-8
 import os
 import re
+import signal
 import traceback
 
 import requests
@@ -33,7 +34,7 @@ def test_ok(ip_with_port_text, proxy_type='socks5'):
         print(e)
         return False
     except Exception as e:
-        print(e)
+        logger.error(traceback.format_exc())
         return False
 
 
@@ -56,8 +57,15 @@ def check_and_update_conf():
             find_res = re.findall(r'forward-socks5 \/ (\d+\.\d+\.\d+\.\d+\:\d+)', text)
             # 验证是否能用,如果不能用就更新配置(测试两次，连续两次不行才换)
             if not test_ok(find_res[0]) and not test_ok(find_res[0]):
-                resp = requests.get('http://119.29.134.163:10082/get_ip_port',
-                                    params={'account': 'CK_test', 'password': 'CK_test'})
+                try:
+                    resp = requests.get('http://119.29.134.163:10082/get_ip_port',
+                                        params={'account': 'CK_test', 'password': 'CK_test'})
+                except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
+                    print(e)
+                    return
+                except Exception as e:
+                    logger.error(traceback.format_exc())
+                    return
                 new_text = text.replace(find_res[0], resp.content.decode())
                 frw.seek(0)
                 frw.write(new_text)
@@ -70,9 +78,20 @@ if __name__ == "__main__":
     # 更改工作目录到Privoxy
     os.chdir(os.getcwd() + '\\Privoxy')
     # 启动
-    win32api.ShellExecute(0, 'open', os.getcwd() + '\\privoxy.exe', '', '', 0)
+    a = win32api.ShellExecute(0, 'open', os.getcwd() + '\\privoxy.exe', '', '', 0)
+    current_pid = win32api.GetCurrentProcessId()
     # 把工作目录更改回上一级
     os.chdir('..')
     while True:
-        check_and_update_conf()
-        time.sleep(60)
+        try:
+            check_and_update_conf()
+            time.sleep(60)
+        except Exception:
+            try:
+                requests.get('http://119.29.134.163:10082/get_client_error',
+                             params={'account': 'CK_test', 'error': traceback.format_exc()})
+            except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
+                print(e)
+            except Exception as e:
+                logger.error(traceback.format_exc())
+                # os.kill(current_pid,signal.CTRL_C_EVENT)
