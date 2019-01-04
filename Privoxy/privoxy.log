@@ -1,2 +1,6 @@
 Jan 02 03:08:29.608 Privoxy(0000335c) Fatal error: can't bind to 127.0.0.1:8118: There may be another Privoxy or some other proxy running on port 8118
 Jan 04 00:51:34.160 Privoxy(000036bc) Fatal error: can't bind to 127.0.0.1:8118: There may be another Privoxy or some other proxy running on port 8118
+Jan 04 12:11:11.629 Privoxy(00004ec4) Fatal error: can't bind to 127.0.0.1:8118: There may be another Privoxy or some other proxy running on port 8118
+Jan 04 12:11:30.444 Privoxy(00005430) Fatal error: can't bind to 127.0.0.1:8118: There may be another Privoxy or some other proxy running on port 8118
+Jan 04 12:12:48.317 Privoxy(00003bd8) Fatal error: can't bind to 127.0.0.1:8118: There may be another Privoxy or some other proxy running on port 8118
+Jan 04 12:14:35.296 Privoxy(00005484) Fatal error: can't bind to 127.0.0.1:8118: There may be another Privoxy or some other proxy running on port 8118

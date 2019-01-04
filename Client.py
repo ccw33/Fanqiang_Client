@@ -14,6 +14,10 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36"
 }
 proxy_filt_path = 'Privoxy/config.txt'
+server = "119.29.134.163:10082"
+
+
+# server = "127.0.0.1:5082"
 
 
 def test_ok(ip_with_port_text, proxy_type='socks5'):
@@ -23,7 +27,7 @@ def test_ok(ip_with_port_text, proxy_type='socks5'):
     '''
     try:
         print('测试{0}'.format(ip_with_port_text))
-        resp = requests.get('https://www.youtube.com/', headers=headers,
+        resp = requests.get('https://www.google.com/', headers=headers,
                             proxies={'http': proxy_type + (
                                 'h' if proxy_type == 'socks5' else '') + '://' + ip_with_port_text,
                                      'https': proxy_type + (
@@ -58,10 +62,11 @@ def check_and_update_conf():
             # 验证是否能用,如果不能用就更新配置(测试两次，连续两次不行才换)
             if not test_ok(find_res[0]) and not test_ok(find_res[0]):
                 try:
-                    resp = requests.get('http://119.29.134.163:10082/get_ip_port',
-                                        params={'account': 'CK_test', 'password': 'CK_test'})
+                    resp = requests.get('http://{0}/get_ip_port'.format(server),
+                                        params={'account': 'CK_test', 'password': 'CK_test'}, timeout=2)
                 except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
                     print(e)
+                    logger.debug("连接不上服务器")
                     return
                 except Exception as e:
                     logger.error(traceback.format_exc())
@@ -73,25 +78,38 @@ def check_and_update_conf():
         logger.error(traceback.format_exc())
 
 
-if __name__ == "__main__":
+def startPrivoxy():
     # 启动privoxy
     # 更改工作目录到Privoxy
     os.chdir(os.getcwd() + '\\Privoxy')
     # 启动
-    a = win32api.ShellExecute(0, 'open', os.getcwd() + '\\privoxy.exe', '', '', 0)
-    current_pid = win32api.GetCurrentProcessId()
+    win32api.ShellExecute(0, 'open', os.getcwd() + '\\privoxy.exe', '', '', 0)
     # 把工作目录更改回上一级
     os.chdir('..')
+
+
+if __name__ == "__main__":
+    # 先关闭相应应用再开启（防止客户重复开启）
+    os.system('taskkill /F /IM Superplane.exe')
+    os.system('taskkill /F /IM Privoxy.exe')
+    startPrivoxy()
+    time.sleep(1)
     while True:
         try:
+            # 检查Privoxy是否已经关闭，如果关闭了就开启（客户可能会手动关闭Privoxy）
+            code = os.system('netstat -ano | findstr "8118" ')
+            if not code == 0:
+                startPrivoxy()
             check_and_update_conf()
-            time.sleep(60)
         except Exception:
             try:
-                requests.get('http://119.29.134.163:10082/get_client_error',
+                requests.get('http://{0}/get_client_error'.format(server),
                              params={'account': 'CK_test', 'error': traceback.format_exc()})
             except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
                 print(e)
             except Exception as e:
                 logger.error(traceback.format_exc())
                 # os.kill(current_pid,signal.CTRL_C_EVENT)
+        finally:
+            time.sleep(60)
+
