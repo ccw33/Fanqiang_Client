@@ -2,6 +2,7 @@
 import os
 import re
 import signal
+import subprocess
 import traceback
 
 import requests
@@ -15,8 +16,6 @@ headers = {
 }
 proxy_filt_path = 'Privoxy/config.txt'
 server = "119.29.134.163:10082"
-
-
 # server = "127.0.0.1:5082"
 
 
@@ -87,12 +86,24 @@ def startPrivoxy():
     # 把工作目录更改回上一级
     os.chdir('..')
 
+def close_all_but_this():
+    '''
+    关闭钱买开了的Superplane进程
+    :return:
+    '''
+    p = subprocess.Popen('wmic process where caption="Superplane.exe" get Handle', shell=True, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    (stdoutput, erroutput) = p.communicate()
+    already_pids = re.findall('\d+', stdoutput.decode())
+    for pid in already_pids[:-2]:# 随后两个是本进程
+        os.system('taskkill /pid {0} -t -F'.format(pid))
+
 
 if __name__ == "__main__":
-    # 先关闭相应应用再开启（防止客户重复开启）
-    os.system('taskkill /F /IM Superplane.exe')
-    os.system('taskkill /F /IM Privoxy.exe')
-    startPrivoxy()
+    # 关闭旧的进程
+    close_all_but_this()
+    if not os.system('netstat -ano | findstr "8118" '):
+        startPrivoxy()
     time.sleep(1)
     while True:
         try:
