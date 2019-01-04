@@ -1,8 +1,6 @@
 # encoding:utf-8
 import os
 import re
-import signal
-import subprocess
 import traceback
 
 import requests
@@ -86,30 +84,52 @@ def startPrivoxy():
     # 把工作目录更改回上一级
     os.chdir('..')
 
+def closeProcess(pid):
+    '''
+    根据pid关闭进程
+    :param pid:
+    :return:
+    '''
+    PROCESS_TERMINATE = 1
+    handle = win32api.OpenProcess(PROCESS_TERMINATE, False, pid)
+    win32api.TerminateProcess(handle, -1)
+    win32api.CloseHandle(handle)
+
+def find_pid_through_name(name):
+    '''
+    根据名字找出pid
+    :return:
+    '''
+    # p = subprocess.Popen('wmic process where caption="{0}" get Handle'.format(name), shell=True, stdout=subprocess.PIPE,
+    #                      stderr=subprocess.PIPE)
+    # (stdoutput, erroutput) = p.communicate()
+    # pids = re.findall('\d+', stdoutput.decode())
+    out = os.popen('wmic process where caption="{0}" get Handle'.format(name)).read()
+    pids = re.findall('\d+', out)
+    return pids
+
 def close_all_but_this():
     '''
     关闭钱买开了的Superplane进程
     :return:
     '''
-    p = subprocess.Popen('wmic process where caption="Superplane.exe" get Handle', shell=True, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    (stdoutput, erroutput) = p.communicate()
-    already_pids = re.findall('\d+', stdoutput.decode())
-    for pid in already_pids[:-2]:# 随后两个是本进程
-        os.system('taskkill /pid {0} -t -F'.format(pid))
+    already_pids = find_pid_through_name('Superplane.exe')
+    if len(already_pids)>2:
+        for pid in already_pids[:-2]:# 随后两个是本进程
+            # os.system('taskkill /pid {0} -t -F'.format(pid))
+            closeProcess(pid)
 
 
 if __name__ == "__main__":
     # 关闭旧的进程
     close_all_but_this()
-    if not os.system('netstat -ano | findstr "8118" '):
-        startPrivoxy()
+    startPrivoxy()
     time.sleep(1)
     while True:
         try:
             # 检查Privoxy是否已经关闭，如果关闭了就开启（客户可能会手动关闭Privoxy）
-            code = os.system('netstat -ano | findstr "8118" ')
-            if not code == 0:
+            privoxy_pids = find_pid_through_name("Privoxy.exe")
+            if not privoxy_pids:
                 startPrivoxy()
             check_and_update_conf()
         except Exception:

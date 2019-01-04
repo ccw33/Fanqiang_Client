@@ -19,6 +19,9 @@ def find_through_subprocess():
         os.system('taskkill /pid {0} -t -F'.format(pid))
     a = 1
 
+def find_through_popen(name):
+    resp = os.popen('wmic process where caption="{0}" get Handle'.format(name))
+    print(resp.read())
 
 if __name__=="__main__":
-    find_through_subprocess()
+    find_through_popen("Privoxy.exe")
