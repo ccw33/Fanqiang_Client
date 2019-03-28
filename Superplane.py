@@ -23,7 +23,7 @@ def test_ok(ip_with_port_text, proxy_type='socks5'):
     :return:(是否ok<Bool>,原因<String>)
     '''
     try:
-        print('测试{0}'.format(ip_with_port_text))
+        logger.info('测试{0}'.format(ip_with_port_text))
         resp = requests.get('https://www.google.com/', headers=headers,
                             proxies={'http': proxy_type + (
                                 'h' if proxy_type == 'socks5' else '') + '://' + ip_with_port_text,
@@ -32,7 +32,7 @@ def test_ok(ip_with_port_text, proxy_type='socks5'):
                             timeout=10)
         return True
     except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
-        print(e)
+        logger.error(e)
         return False
     except Exception as e:
         logger.error(traceback.format_exc())
@@ -62,15 +62,16 @@ def check_and_update_conf():
                     resp = requests.get('http://{0}/get_ip_port'.format(server),
                                         params={'account': 'CK_test', 'password': 'CK_test'}, timeout=2)
                 except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
-                    print(e)
+                    logger.error(e)
                     logger.debug("连接不上服务器")
                     return
                 except Exception as e:
                     logger.error(traceback.format_exc())
                     return
-                new_text = text.replace(find_res[0], resp.content.decode())
-                frw.seek(0)
-                frw.write(new_text)
+                if resp.status_code == 200:
+                    new_text = text.replace(find_res[0], resp.content.decode())
+                    frw.seek(0)
+                    frw.write(new_text)
     except Exception:
         logger.error(traceback.format_exc())
 
@@ -128,16 +129,16 @@ if __name__ == "__main__":
     while True:
         try:
             # 检查Privoxy是否已经关闭，如果关闭了就开启（客户可能会手动关闭Privoxy）
-            privoxy_pids = find_pid_through_name("Privoxy.exe")
-            if not privoxy_pids:
-                startPrivoxy()
+            # privoxy_pids = find_pid_through_name("Privoxy.exe")
+            # if not privoxy_pids:
+            #     startPrivoxy()
             check_and_update_conf()
         except Exception:
             try:
                 requests.get('http://{0}/get_client_error'.format(server),
                              params={'account': 'CK_test', 'error': traceback.format_exc()})
             except requests.exceptions.ConnectionError or requests.exceptions.ReadTimeout or requests.exceptions.SSLError as e:  # request 访问错误
-                print(e)
+                logger.error(e)
             except Exception as e:
                 logger.error(traceback.format_exc())
                 # os.kill(current_pid,signal.CTRL_C_EVENT)

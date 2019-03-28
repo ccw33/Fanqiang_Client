@@ -10,7 +10,7 @@ class Log():
 
     '''
 
-    def __init__(self, file_path, level=logging.ERROR):
+    def __init__(self, file_path, level=logging.FATAL):
         logger = logging.getLogger()
         logger.setLevel(level=level)
         # 定义一个RotatingFileHandler，最多备份3个日志文件，每个日志文件最大1K
@@ -68,4 +68,4 @@ class Log():
     # def error(self,value):
     #     self.queue.put(('error',value))
 # log_level = logging.DEBUG if Conf.get('DEFAULT','mode')=='debug' else logging.ERROR
-logger = Log('log/server',logging.FATAL ).logger
+logger = Log('log/server',logging.DEBUG ).logger
